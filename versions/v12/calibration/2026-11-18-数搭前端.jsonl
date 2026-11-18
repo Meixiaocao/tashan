@@ -1,0 +1,13 @@
+{"id":"FP-G6-07","object":"前端原型","dimension":"G6","claim":"4个输入无标签","verdict":"false_positive","why":"动态 input/textarea/select 均在 label.field 内，浏览器可得到可访问名称","lesson":"标签检查看 DOM 包裹与可访问名称，不只看 aria-label 计数","assert_type":"可达性"}
+{"id":"FP-P1-06","object":"agent-workbench","dimension":"G7","claim":"端口白名单只认 9100","verdict":"false_positive","why":"relayPortsFor 从 RELAY_MACHINE_<port> 动态补端口","lesson":"配置断言追到运行时解析函数与 env 遍历，不只看默认字面量","assert_type":"配置"}
+{"id":"FP-P2-02","object":"agent-workbench","dimension":"G3","claim":"任务槽无 stale 回收","verdict":"false_positive","why":"启动时 recoverRunningTasks 将 running 置 failed","lesson":"恢复断言追到启动路径与 store，不只看并发槽模块","assert_type":"行为"}
+{"id":"FP-P4-03","object":"model-relay","dimension":"A2","claim":"测试需先装依赖","verdict":"false_positive","why":"package.json 无 dependencies，node --test 可直接运行","lesson":"依赖断言先读 package.json","assert_type":"依赖"}
+{"id":"FP-P4-05","object":"dataset-service","dimension":"A1","claim":"data 产物入仓污染提交历史","verdict":"false_positive","why":"data/ 已 gitignore，git ls-files 为 0","lesson":"入仓断言用 git ls-files / check-ignore","assert_type":"版本控制"}
+{"id":"HALF-P2-04","object":"agent-workbench","dimension":"G1","claim":"演示模型与真实模型响应不可区分","verdict":"partial","why":"任务响应已带 modelMode，界面显示模型名；仅答案正文无标记","lesson":"先查任务级/响应级字段，再判完全无标识","assert_type":"状态标识"}
+{"id":"HALF-P3-08","object":"管理端","dimension":"G6","claim":"2个 input 均无标签","verdict":"partial","why":"动态字段有 label.field；4 个筛选输入确实缺标签","lesson":"静态计数与运行时可访问名称合并判断","assert_type":"可达性"}
+{"id":"PROC-D2-STALE","object":"整体","dimension":"D2","claim":"字号/色板/loading 未动","verdict":"stale_snapshot","why":"取证于 15:13，修复后已变 6 档/30 token/9 命中","lesson":"报告带取证时点与工作区状态；D2 必须复跑","assert_type":"流程"}
+{"id":"ERR-C1-UNIT","object":"管理端/前端","dimension":"G2","claim":"未压缩字节超 gzip 预算 3 倍","verdict":"unit_mismatch","why":"未压缩字节与 gzip 后预算直接相比","lesson":"对比口径必须一致；用可测传输字节","assert_type":"口径"}
+{"id":"PROC-AUTH-DECISION","object":"整体","dimension":"G4","claim":"默认鉴权关闭=硬缺陷","verdict":"product_decision","why":"账号权限策略已定后续统一做，当前不伪装已授权","lesson":"产品决定标待拍板，不与硬标准同权","assert_type":"流程"}
+{"id":"PROC-VERIFY-NOSCRIPT","object":"整体","dimension":"C2","claim":"验后值要求运行 scripts/verify.py","verdict":"gap_in_skill","why":"脚本不在被审仓内，D2 无法机器复验","lesson":"验后值必须可复验；脚本不在对象仓时随报告交付","assert_type":"流程"}
+{"id":"HIT-G6-02","object":"前端原型","dimension":"G6","claim":"--ink-3 对比度不足","verdict":"true_positive","measured_after":"#66717e：白底 4.97 / bg 4.59","lesson":"对比度结论给底色与比值，换算是可复算的","assert_type":"数量"}
+{"id":"HIT-G6-04","object":"前端原型","dimension":"G6","claim":"85 个自由色值","verdict":"true_positive","measured_after":"30 token；运行时三路由 28 色","lesson":"色板计数区分 token 与运行时唯一色","assert_type":"数量"}

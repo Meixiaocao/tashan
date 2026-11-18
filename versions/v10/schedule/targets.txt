@@ -1,0 +1,7 @@
+# 他山定时对象清单
+# 每行一个绝对路径，# 开头为注释。改完保存即可，tick.sh 会按顺序处理。
+#
+# 示例：
+# C:/Users/AYA/.agents/skills/他山
+# D:/AIpi/工作/项目/交数智能体工厂/代码仓库/前端原型
+C:/Users/AYA/.agents/skills/他山
