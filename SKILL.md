@@ -231,6 +231,12 @@ python "$TA_SHAN_DIR/scripts/evolve.py" record \
 python "$TA_SHAN_DIR/scripts/evolve.py" fitness
 ```
 
+| 参数 | 含义 |
+|---|---|
+| `--verified N` | 本轮用命令**实际复核过**的条数。未填按 0.5 折、填 0 按 0 折；`verified/fixed` 作为执行可信度乘进 F |
+| `--fp N` | 外部复核判定为误报的条数。不给则该维度记"未测"，F 只含自评部分并带 `*` |
+| `--force` | 上一轮已判定下降时仍要记账，需显式加；不加则拒收 |
+
 **改公式三步**（少一步就会让跨轮分数失去可比性）：
 
 1. 改 `scripts/evolve.py` 顶部的 `WEIGHTS`——分数只从这里取，别在 `score()` 里写字面量。

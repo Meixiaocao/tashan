@@ -36,8 +36,8 @@ except Exception:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VDIR = os.path.join(ROOT, "versions")
 LEDGER = os.path.join(VDIR, "ledger.jsonl")
-WEIGHTS = {"fix": 0.35, "recur": 0.25, "fp": 0.25}
-FORMULA = "f3"   # 公式版本：f1 四项含成本与新增；f2 去成本；f3 只收结果项 + 误报
+WEIGHTS = {"exec": 0.5, "acc": 0.5}
+FORMULA = "f5"   # 公式版本：f1 四项含成本与新增；f2 去成本；f3 只收结果项 + 误报
 def w_fingerprint():
     """权重指纹：改了权重却忘了改 FORMULA 时，用它报警。"""
     return hashlib.md5(repr(sorted(WEIGHTS.items())).encode()).hexdigest()[:8]
@@ -67,7 +67,11 @@ def save_all(rows):
 
 
 def score(rec, prev):
-    """F = 0.35*修复率 + 0.25*(1-复发率) - 0.25*误报率
+    """F = 执行质量 × 0.5 + 判准度 × 0.5（有外部复核时）
+
+    执行质量 = 修复率 × (1-复发率)：不做事为 0，修了又回来也要打折。
+    判准度 = 1 - 误报率：需要外部复核数据；缺数据时 F 只等于执行质量，带 * 标记。
+    载荷与新增条数不进公式。
 
     只收结果项：修好了吗、会不会回来、判错了没。
     载荷与新增条数不进公式，只做单列提示——两者都是过程量，
@@ -84,11 +88,22 @@ def score(rec, prev):
     new_rate = min(1.5, rec["new"] / prev_found) if prev_found else 0.0
     cost = max(0.0, rec.get("lines", 0) / COST_BUDGET - 1)
 
-    raw = WEIGHTS["fix"] * fixed_rate + WEIGHTS["recur"] * (1 - recur_rate)
-    wsum = 0.60
+    # 执行质量：修了且没回来才算数。不做事 → 0，不靠"复发率为零"白拿分。
+    # 执行可信度：自报的"修好了"要打折。未填 verified 按 0.5，填 0 按 0（声称修了但一条没验）。
+    fixed_n = rec.get("fixed") or 0
+    verified = rec.get("verified")
+    if verified is None:
+        cred = 0.5 if fixed_n > 0 else 1.0
+    elif fixed_n == 0:
+        cred = 1.0
+    else:
+        cred = min(1.0, verified / fixed_n)
+    exec_q = fixed_rate * (1 - recur_rate) * cred
     parts = {
         "fixed_rate": round(fixed_rate, 3),
         "recur_rate": round(recur_rate, 3),
+        "exec_quality": round(exec_q, 3),
+        "credibility": round(cred, 3),
         "new_rate": round(new_rate, 3),
         "load_excess": round(cost, 3),
     }
@@ -97,11 +112,13 @@ def score(rec, prev):
     measured = fp is not None and prev_found > 0
     if measured:
         fp_rate = (fp + 0.5 * (rec.get("partial") or 0)) / prev_found
-        raw -= WEIGHTS["fp"] * fp_rate
-        wsum = 0.85
+        f = WEIGHTS["exec"] * exec_q + WEIGHTS["acc"] * (1 - fp_rate)
         parts["fp_rate"] = round(fp_rate, 3)
+        parts["accuracy"] = round(1 - fp_rate, 3)
+    else:
+        f = exec_q
     parts["measured_fp"] = measured
-    return round(raw / wsum, 4), parts
+    return round(f, 4), parts
 
 
 def norm_dims(value):
@@ -134,6 +151,14 @@ def with_scores(rows):
 
 def cmd_record(args):
     rows = load()
+    if rows and not args.force:
+        scored = with_scores(rows)
+        same = [r for r in scored if r["object"] == args.object and not r.get("archived")]
+        if len(same) >= 2 and all(r["fitness"] is not None for r in same[-2:]):
+            if same[-1]["fitness"] < same[-2]["fitness"]:
+                print("拒绝记录：上一轮已判定下降（STOP/REGRESS）。先修问题或加 --force。", file=sys.stderr)
+                return 1
+
     if rows:
         last = rows[-1]
         if last.get("formula") == args.formula and last.get("wfp") and last["wfp"] != w_fingerprint():
@@ -159,6 +184,7 @@ def cmd_record(args):
         "lines": args.lines,
         "formula": args.formula,
         "wfp": w_fingerprint(),
+        "verified": args.verified,
         "fp": args.fp,
         "partial": args.partial,
     }
@@ -215,11 +241,31 @@ def cmd_fitness(args):
         streak = streak + 1 if delta < 0 else 0
 
     print("\n## 判定")
+    _ev = os.path.join(VDIR, "events.jsonl")
+    if os.path.isfile(_ev):
+        _last = None
+        for _line in open(_ev, encoding="utf-8"):
+            if _line.strip():
+                _last = _line
+        if _last:
+            try:
+                _e = json.loads(_last)
+                print(f"上次回滚：{_e.get('tag')}（{_e.get('ts')}）")
+            except ValueError:
+                pass
+
+    _tail = [r for r in rows if not r.get("archived")][-3:]
+    if len(_tail) == 3 and all(not r["parts"].get("measured_fp") for r in _tail):
+        print("提醒：最近 3 轮均无外部复核，F 只含自评部分；下一轮前先向对象方索取复核。")
     last = rows[-1]
     if last["baseline"]:
         print(f"当前：第 {len(rows)} 条 {last['object']}（首评，记基线）")
         print("VERDICT: BASELINE —— 首次评审该对象，下一轮才有 Δ。")
         return 0
+    recent = [r for r in scored if r["object"] == last["object"]][-3:]
+    if recent:
+        avg = round(sum(r["fitness"] for r in recent) / len(recent), 4)
+        print(f"近 {len(recent)} 轮均值：{avg}（单轮差值受一拍延迟影响，以均值看趋势）")
     best = max(scored, key=lambda r: r["fitness"])
     print(f"当前版本：第 {len(rows)} 条 F={last['fitness']}")
     print(f"可比最高：R{best['round']} F={best['fitness']}")
@@ -265,6 +311,11 @@ def cmd_rollback(args):
     _copy_dir(src, ROOT)
     print(f"已回滚 ← {src}")
     print("注意：回滚只覆盖同名文件；快照中不存在的新增文件不会被删除，需手动核对。")
+    ev = os.path.join(VDIR, "events.jsonl")
+    with open(ev, "a", encoding="utf-8") as fp:
+        fp.write(json.dumps({"ts": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                             "event": "rollback", "tag": args.tag}, ensure_ascii=False) + "\n")
+    print(f"事件已记 → {ev}")
     return 0
 
 
@@ -283,6 +334,8 @@ def main():
     r.add_argument("--recur", type=int, default=0)
     r.add_argument("--fixed", type=int, default=0)
     r.add_argument("--lines", type=int, default=0)
+    r.add_argument("--verified", type=int, default=None, help="本轮用命令实际复核过的条数；未填按 0.5 折")
+    r.add_argument("--force", action="store_true", help="已判定 STOP 仍继续记录")
     r.add_argument("--formula", default=FORMULA, help="公式版本，不同的分数不可比")
     r.add_argument("--fp", type=int, default=None, help="外部复核判定为误报的条数；不给则误报项记未测")
     r.add_argument("--partial", type=int, default=0, help="半误报条数，按 0.5 计")
