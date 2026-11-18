@@ -37,7 +37,7 @@ VDIR = os.path.join(ROOT, "versions")
 LEDGER = os.path.join(VDIR, "ledger.jsonl")
 FORMULA = "f3"   # 公式版本：f1 四项含成本与新增；f2 去成本；f3 只收结果项 + 误报
 COST_BUDGET = 320
-SNAP_EXCLUDE = {"评审", "评审-他山", "_archive", "versions", "__pycache__"}
+SNAP_EXCLUDE = {"评审", "评审-他山", "_archive", "versions", "__pycache__", ".git"}
 
 
 def load():
