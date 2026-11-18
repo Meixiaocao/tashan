@@ -20,6 +20,7 @@
 外部收敛率 = (D1 − D2) / D1，D 为同维度首跑/复跑差距条数。
 """
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -35,7 +36,13 @@ except Exception:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VDIR = os.path.join(ROOT, "versions")
 LEDGER = os.path.join(VDIR, "ledger.jsonl")
+WEIGHTS = {"fix": 0.35, "recur": 0.25, "fp": 0.25}
 FORMULA = "f3"   # 公式版本：f1 四项含成本与新增；f2 去成本；f3 只收结果项 + 误报
+def w_fingerprint():
+    """权重指纹：改了权重却忘了改 FORMULA 时，用它报警。"""
+    return hashlib.md5(repr(sorted(WEIGHTS.items())).encode()).hexdigest()[:8]
+
+
 COST_BUDGET = 320
 SNAP_EXCLUDE = {"评审", "评审-他山", "_archive", "versions", "__pycache__", ".git"}
 
@@ -127,6 +134,11 @@ def with_scores(rows):
 
 def cmd_record(args):
     rows = load()
+    if rows:
+        last = rows[-1]
+        if last.get("formula") == args.formula and last.get("wfp") and last["wfp"] != w_fingerprint():
+            print("警告：权重已改但 FORMULA 未升级，新记录会与旧记录被判为同口径。"
+                  f"（末条 wfp={last['wfp']} 当前={w_fingerprint()}）", file=sys.stderr)
     prev = None
     for _r in reversed(rows):
         if _r.get("object") == args.object and norm_dims(_r.get("dims", "")) == norm_dims(args.dims):
@@ -146,6 +158,7 @@ def cmd_record(args):
         "fixed": args.fixed,
         "lines": args.lines,
         "formula": args.formula,
+        "wfp": w_fingerprint(),
         "fp": args.fp,
         "partial": args.partial,
     }
@@ -169,7 +182,9 @@ def cmd_fitness(args):
         return 0
     head = f"{'轮':>3} {'版本':<5} {'对象':<14} {'式':<3} {'条数':>3} {'新':>2} {'留':>2} {'复':>2} {'修':>2} {'行':>4} {'F':>9}"
     print(head)
-    for seq, r in enumerate(rows, 1):
+    archived = [(i, r) for i, r in enumerate(rows, 1) if r.get("archived")]
+    live = [(i, r) for i, r in enumerate(rows, 1) if not r.get("archived")]
+    for seq, r in live:
         if r["baseline"]:
             f = "baseline"
         else:
@@ -178,7 +193,13 @@ def cmd_fitness(args):
               f"{r['new']:>2} {r['carried']:>2} {r['recur']:>2} {r['fixed']:>2} "
               f"{r.get('lines', 0):>4}{'!' if (r.get('lines', 0) / COST_BUDGET - 1) > 0 else ' '} {f:>9}")
 
-    if any(not r["baseline"] and not r["parts"].get("measured_fp") for r in rows):
+    if archived:
+        print(f"\n## 存档（{len(archived)} 条，公式已退役，仅留存）")
+        for seq, r in archived:
+            print(f"{seq:>3} {r['version']:<5} {r['object'][:14]:<14} {r.get('formula','?'):<3} "
+                  f"{r['found']:>3}  {r.get('lines', 0):>4}")
+
+    if any(not r["baseline"] and not r["parts"].get("measured_fp") for r in rows if not r.get("archived")):
         print("\n* 误报项未测（无外部复核）：其余项权重重归一，分数不得与含误报项的轮次直接比。")
 
     scored = [r for r in rows if not r["baseline"]]
