@@ -20,14 +20,18 @@ allowed-tools: Bash(python:*) Bash(python3:*) Bash(bash:*) Read Write Edit
 5. **不估工作量**。只给差距与参照，成本与排期由执行方算。
 6. **证据类型须匹配断言类型**。行为性结论不能靠单文件 `grep` 支撑；断言“没有某机制”前先搜反义与替代实现（recover / stale / cleanup / ignore / fallback / default）。匹配不上的，标“未验证（静态推断）”并降依据级。匹配表见 `dims/common.md` §四。
 
-**判据四层**（每层只回答一个问题，逐层收窄）：
+**判据五层**（每层只回答一个问题，逐层收窄）：
 
 | 层 | 问题 | 出处 |
 |---|---|---|
+| **找标准** | **这次用哪把尺子** | `refs/standard.md` |
 | 结果六类 | 这条差距成立吗 | `refs/bench.md` §一 |
 | 依据四级 | 凭什么这么说 | `refs/bench.md` §二 |
 | 支配判定 | 该不该无条件做 | `refs/tradeoff.md` §一 |
 | 约束清单 | 在什么条件下算最优 | `refs/tradeoff.md` §二 |
+
+**标准不预置在技能里**。该领域该看哪些维度、阈值多少，每轮现搜并写进报告第 2 节；
+`refs/samples/` 里的东西是历史采样，只能看格式，不能当尺子。
 
 **自评不免流程**：对象是自己或自己产的件时照常走全流程，报告头追加"自评局限：评审者与对象同源"。
 
@@ -198,9 +202,11 @@ bash "${TA_SHAN_DIR:-$HOME/.agents/skills/他山}/scripts/run.sh" <目标目录>
 | `dims/common.md` | 每轮（通用 7 维） | 否 |
 | `dims/<类>.md` | 每轮，只读选定的维 | 否 |
 | `dims/arch.md` | 对象含 agent 特征、跑 G0 时 | 是 |
+| `refs/standard.md` | 每轮（S2 找标准），首次用时读全 | 否 |
 | `refs/bench.md` | 每轮（S3 对照） | 否 |
 | `refs/report.md` | 出报告时 | 否 |
 | `refs/tradeoff.md` | 出报告时做支配判定 | 是 |
+| `refs/samples/` | 想看采样格式时，不可当尺子 | 是 |
 | `calibration/<对象>-*.jsonl` | 每轮开头，只读当前对象，取 5 条 | 是 |
 
 ### 脚本失败降级表
