@@ -1,1 +1,2 @@
-{"date":"2026-11-18","object":"项目A","what":"内部业务系统，6 组件，约 30 万行","d1":36,"d2_valid":25,"converged":14,"fp":5,"partial":2,"note":"内部业务系统，6 组件，约 30 万行；P1/P2 13 条未复评"}
+{"date": "2026-11-18", "object": "项目A", "what": "内部业务系统，6 组件，约 30 万行", "d1": 36, "d2_valid": 25, "converged": 14, "fp": 5, "partial": 2, "note": "内部业务系统，6 组件，约 30 万行；P1/P2 13 条未复评"}
+{"date": "2026-11-18", "object": "项目A", "what": "内部数据智能体平台，3 Node 服务 + 2 前端", "d1": 5, "d2_valid": null, "converged": null, "fp": 0, "partial": 0, "note": "v22 三层结构首跑，仅审部署面与 health；待复评后再填有效/收敛；误报未测"}
