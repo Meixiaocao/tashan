@@ -231,6 +231,14 @@ python "$TA_SHAN_DIR/scripts/evolve.py" record \
 python "$TA_SHAN_DIR/scripts/evolve.py" fitness
 ```
 
+**改公式三步**（少一步就会让跨轮分数失去可比性）：
+
+1. 改 `scripts/evolve.py` 顶部的 `WEIGHTS`——分数只从这里取，别在 `score()` 里写字面量。
+2. 升 `FORMULA` 版本号（f3 → f4），同步改 `CHANGELOG` 与本节的公式段。
+3. 跑一次 `record`：若末条记录同公式的 `wfp` 与当前不一致，脚本会报警，说明第 2 步漏了。
+
+`fitness` 只在 **同对象 + 同维度 + 同公式** 间算 Δ；跨公式的分数不放在一起比。
+
 ```
 F = 0.35×修复率 + 0.25×(1−复发率) − 0.25×误报率
 修复率 = fixed/上轮条数；复发率 = recur/本轮条数

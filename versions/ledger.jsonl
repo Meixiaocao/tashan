@@ -12,3 +12,4 @@
 {"round": 12, "version": "v14", "ts": "2026-11-18 20:07", "object": "他山自身", "kind": "skill", "dims": "C2,G5", "found": 4, "new": 3, "carried": 1, "recur": 0, "fixed": 5, "lines": 595, "fp": null, "partial": 0, "formula": "f3"}
 {"round": 13, "version": "v15", "ts": "2026-11-18 21:01", "object": "他山自身", "kind": "skill", "dims": "C2,G5", "found": 4, "new": 3, "carried": 1, "recur": 0, "fixed": 3, "lines": 597, "formula": "f3", "fp": null, "partial": 0}
 {"round": 14, "version": "v17", "ts": "2026-11-18 21:19", "object": "他山自身", "kind": "skill", "dims": "C2,G5", "found": 3, "new": 2, "carried": 1, "recur": 0, "fixed": 0, "lines": 606, "formula": "f3", "fp": null, "partial": 0}
+{"round": 15, "version": "v18", "ts": "2026-11-18 21:57", "object": "他山自身", "kind": "skill", "dims": "C2,G5", "found": 2, "new": 2, "carried": 0, "recur": 0, "fixed": 3, "lines": 590, "formula": "f3", "wfp": "45d3ece4", "fp": null, "partial": 0}

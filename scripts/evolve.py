@@ -84,7 +84,7 @@ def score(rec, prev):
     new_rate = min(1.5, rec["new"] / prev_found) if prev_found else 0.0
     cost = max(0.0, rec.get("lines", 0) / COST_BUDGET - 1)
 
-    raw = 0.35 * fixed_rate + 0.25 * (1 - recur_rate)
+    raw = WEIGHTS["fix"] * fixed_rate + WEIGHTS["recur"] * (1 - recur_rate)
     wsum = 0.60
     parts = {
         "fixed_rate": round(fixed_rate, 3),
@@ -97,7 +97,7 @@ def score(rec, prev):
     measured = fp is not None and prev_found > 0
     if measured:
         fp_rate = (fp + 0.5 * (rec.get("partial") or 0)) / prev_found
-        raw -= 0.25 * fp_rate
+        raw -= WEIGHTS["fp"] * fp_rate
         wsum = 0.85
         parts["fp_rate"] = round(fp_rate, 3)
     parts["measured_fp"] = measured
