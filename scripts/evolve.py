@@ -130,9 +130,8 @@ def norm_dims(value):
 def prev_same_object(rows, idx):
     """同对象的上一轮；不同对象的轮次不可比。"""
     obj = rows[idx]["object"]
-    dims = norm_dims(rows[idx].get("dims", ""))
     for j in range(idx - 1, -1, -1):
-        if rows[j]["object"] == obj and norm_dims(rows[j].get("dims", "")) == dims:
+        if rows[j]["object"] == obj:
             return rows[j]
     return None
 
@@ -233,7 +232,8 @@ def cmd_fitness(args):
     streak = 0
     for i in range(1, len(scored)):
         a, b = scored[i - 1], scored[i]
-        if a["object"] != b["object"] or a.get("formula") != b.get("formula"):
+        if (a["object"] != b["object"] or a.get("formula") != b.get("formula")
+                or norm_dims(a.get("dims", "")) != norm_dims(b.get("dims", ""))):
             continue
         delta = round(b["fitness"] - a["fitness"], 4)
         arrow = "↑" if delta > 0 else ("↓" if delta < 0 else "=")

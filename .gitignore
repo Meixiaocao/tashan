@@ -7,3 +7,4 @@ __pycache__/
 evidence-probe.json
 evidence-scan.json
 evidence-ui.json
+versions/v*/
