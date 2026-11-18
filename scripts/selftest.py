@@ -57,6 +57,11 @@ def main():
     f, _ = ev.score(rec, {"found": 4})
     check("4/4 修但复发 2 → F=0.5", f, 0.5)
 
+    print("evolve.score —— 修复率不得超过 1（修旧账不冲满分）")
+    f, _ = ev.score({"fixed": 4, "verified": 4, "recur": 0, "found": 4, "new": 0, "lines": 600},
+                    {"found": 2})
+    check("修 4 条、上轮 only 2 → F=1.0 不是 2.0", f, 1.0)
+
     print("evolve.norm_dims —— 顺序无关")
     check("C2,G5 = G5,C2", ev.norm_dims("G5,C2"), ev.norm_dims("C2,G5"))
 

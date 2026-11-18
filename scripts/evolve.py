@@ -118,7 +118,7 @@ def score(rec, prev):
     else:
         f = exec_q
     parts["measured_fp"] = measured
-    return round(f, 4), parts
+    return round(min(1.0, f), 4), parts
 
 
 def norm_dims(value):
