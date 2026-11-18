@@ -36,11 +36,21 @@ except Exception:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VDIR = os.path.join(ROOT, "versions")
 LEDGER = os.path.join(VDIR, "ledger.jsonl")
-WEIGHTS = {"exec": 0.5, "acc": 0.5}
-FORMULA = "f5"   # 公式版本：f1 四项含成本与新增；f2 去成本；f3 只收结果项 + 误报
+FORMULA = "f6"   # f6 执行质量 × 判准度（判准度自动读 objects 台账）
 def w_fingerprint():
-    """权重指纹：改了权重却忘了改 FORMULA 时，用它报警。"""
-    return hashlib.md5(repr(sorted(WEIGHTS.items())).encode()).hexdigest()[:8]
+    """公式指纹：改了算法却忘了升 FORMULA 时，用它报警。
+
+    f6 起公式里没有权重常量（执行质量 × 判准度，乘法无系数），
+    因此指纹取"评分函数源码 + FORMULA 版本"的哈希——算法一改，指纹必变。
+    """
+    body = ""
+    p = os.path.abspath(__file__)
+    src = open(p, encoding="utf-8").read()
+    i = src.find("def score(")
+    j = src.find("def norm_dims(")
+    if i >= 0 and j > i:
+        body = src[i:j]
+    return hashlib.md5((FORMULA + body).encode()).hexdigest()[:8]
 
 
 COST_BUDGET = 320
@@ -66,30 +76,46 @@ def save_all(rows):
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def external_accuracy():
+    """判准度来自 objects 台账的已复评批次；无数据返回 None。"""
+    p = os.path.join(ROOT, "objects", "ledger.jsonl")
+    if not os.path.isfile(p):
+        return None
+    rows = []
+    for line in open(p, encoding="utf-8"):
+        if line.strip():
+            try:
+                rows.append(json.loads(line))
+            except ValueError:
+                pass
+    done = [r for r in rows if r.get("d2_valid")]
+    if not done:
+        return None
+    d1 = sum(r.get("d1") or 0 for r in done)
+    if not d1:
+        return None
+    bad = sum((r.get("fp") or 0) + 0.5 * (r.get("partial") or 0) for r in done)
+    return 1.0 - bad / d1
+
+
 def score(rec, prev):
-    """F = 执行质量 × 0.5 + 判准度 × 0.5（有外部复核时）
+    """F = 执行质量 × 判准度（f6）
 
-    执行质量 = 修复率 × (1-复发率)：不做事为 0，修了又回来也要打折。
-    判准度 = 1 - 误报率：需要外部复核数据；缺数据时 F 只等于执行质量，带 * 标记。
-    载荷与新增条数不进公式。
+    执行质量 = min(1, 修复率) × (1−复发率) × 可信度
+      修复率封顶 1：修得比上轮发现的还多，是补旧账，不冲过 100%。
+      可信度 = 复验条数 / 修复条数；未填 0.5，填 0 按 0。
+    判准度 = 1 − 误报率，**自动从 objects/ledger.jsonl 已复评批次读取**，
+      不再靠手工传 --fp。无数据时 F 只等于执行质量，带 *。
 
-    只收结果项：修好了吗、会不会回来、判错了没。
-    载荷与新增条数不进公式，只做单列提示——两者都是过程量，
-    折算成分数会让「查得更深」反而扣分，也会让「多写几行机制」直接掉分。
-    结果导向原则见 versions/CHANGELOG.md v13/v14。
-
-    误报率 = (fp + 0.5*partial) / 上轮 found，分母是同对象同维度上一轮的主表条数。
-    未提供 fp（未做外部复核）时该项不计入，其余权重重归一，F 带 * 号：
-    未测不等于 0 分，也不与含该项的轮次直接比。
+    相乘而非相加：既要做对，又要判准。任一项为零，整体为零。
+    载荷与新增条数不进公式——都是过程量，折算成分数会奖励「少报」、惩罚「查得深」。
     """
     prev_found = prev["found"] if prev else 0
-    fixed_rate = (rec["fixed"] / prev_found) if prev_found else 0.0
+    fixed_rate = min(1.0, (rec.get("fixed") or 0) / prev_found) if prev_found else 0.0
     recur_rate = (rec["recur"] / rec["found"]) if rec.get("found") else 0.0
     new_rate = min(1.5, rec["new"] / prev_found) if prev_found else 0.0
     cost = max(0.0, rec.get("lines", 0) / COST_BUDGET - 1)
 
-    # 执行质量：修了且没回来才算数。不做事 → 0，不靠"复发率为零"白拿分。
-    # 执行可信度：自报的"修好了"要打折。未填 verified 按 0.5，填 0 按 0（声称修了但一条没验）。
     fixed_n = rec.get("fixed") or 0
     verified = rec.get("verified")
     if verified is None:
@@ -98,26 +124,20 @@ def score(rec, prev):
         cred = 1.0
     else:
         cred = min(1.0, verified / fixed_n)
+
     exec_q = fixed_rate * (1 - recur_rate) * cred
+    acc = external_accuracy()
+    f = exec_q * acc if acc is not None else exec_q
     parts = {
         "fixed_rate": round(fixed_rate, 3),
         "recur_rate": round(recur_rate, 3),
         "exec_quality": round(exec_q, 3),
         "credibility": round(cred, 3),
+        "accuracy": None if acc is None else round(acc, 3),
         "new_rate": round(new_rate, 3),
         "load_excess": round(cost, 3),
+        "measured_fp": acc is not None,
     }
-
-    fp = rec.get("fp")
-    measured = fp is not None and prev_found > 0
-    if measured:
-        fp_rate = (fp + 0.5 * (rec.get("partial") or 0)) / prev_found
-        f = WEIGHTS["exec"] * exec_q + WEIGHTS["acc"] * (1 - fp_rate)
-        parts["fp_rate"] = round(fp_rate, 3)
-        parts["accuracy"] = round(1 - fp_rate, 3)
-    else:
-        f = exec_q
-    parts["measured_fp"] = measured
     return round(min(1.0, f), 4), parts
 
 
@@ -262,6 +282,15 @@ def cmd_fitness(args):
         print(f"当前：第 {len(rows)} 条 {last['object']}（首评，记基线）")
         print("VERDICT: BASELINE —— 首次评审该对象，下一轮才有 Δ。")
         return 0
+    # 存量：F 度量质量，看不出「修一条冒两条」。存量才是收敛与否的证据。
+    _live = [r for r in rows if not r.get("archived")]
+    _found = sum(r.get("found") or 0 for r in _live)
+    _fixed = sum(r.get("fixed") or 0 for r in _live)
+    _stock = _found - _fixed
+    if _live:
+        trend = "在涨" if _stock > 0 else ("清零" if _stock == 0 else "在降")
+        print(f"累计存量：found {_found} − fixed {_fixed} = {_stock}（{trend}）")
+
     recent = [r for r in scored if r["object"] == last["object"]][-3:]
     if recent:
         avg = round(sum(r["fitness"] for r in recent) / len(recent), 4)
@@ -273,8 +302,10 @@ def cmd_fitness(args):
         print("VERDICT: STOP —— 连续 2 轮下降，停手等人裁定。")
     elif streak == 1:
         print(f"VERDICT: REGRESS —— 本轮下降，回滚到上一版。")
+    elif _stock > 0 and _live:
+        print("VERDICT: STALL —— F 未降但存量在涨：修的速度赶不上发现的速度，在原地打转。")
     else:
-        print("VERDICT: KEEP —— 未下降，保留当前版本。")
+        print("VERDICT: KEEP —— 未下降且存量未涨，保留当前版本。")
     print("\n提醒：F 只度量结构健康；有效性须由外部对象收敛率验证。")
     return 0
 

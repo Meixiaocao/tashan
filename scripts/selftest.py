@@ -31,6 +31,9 @@ def main():
     ev = load("evolve")
     vf = load("verify")
 
+    # 以下先测纯执行质量：把判准度固定为 1.0，隔离外部账单的影响。
+    ev.external_accuracy = lambda: 1.0
+
     print("evolve.score —— 不做事时必须为 0")
     rec = {"fixed": 0, "recur": 0, "found": 3, "new": 3, "lines": 600}
     f, _ = ev.score(rec, {"found": 3})
@@ -62,15 +65,27 @@ def main():
                     {"found": 2})
     check("修 4 条、上轮 only 2 → F=1.0 不是 2.0", f, 1.0)
 
+    print("evolve.score —— 判准度是乘数，判错一半就砍半")
+    ev.external_accuracy = lambda: 0.5
+    f, parts = ev.score({"fixed": 3, "verified": 3, "recur": 0, "found": 3, "new": 0, "lines": 600},
+                        {"found": 3})
+    check("执行 1.0 × 判准 0.5 → F=0.5", f, 0.5)
+    check("parts 里带 accuracy", parts["accuracy"], 0.5)
+
+    print("evolve.external_accuracy —— 从 objects 台账读，不靠传参")
+    acc = ev.external_accuracy()
+    check("读得到精确率（0<acc<=1）", acc is not None and 0 < acc <= 1, True)
+
+    ev.external_accuracy = lambda: 1.0
     print("evolve.norm_dims —— 顺序无关")
     check("C2,G5 = G5,C2", ev.norm_dims("G5,C2"), ev.norm_dims("C2,G5"))
 
-    print("evolve.w_fingerprint —— 改权重必变")
+    print("evolve.w_fingerprint —— 改公式必变（f6 起指纹取评分函数源码）")
     fp0 = ev.w_fingerprint()
-    ev.WEIGHTS["exec"] = 0.99
-    fp1 = ev.w_fingerprint()
-    check("改 WEIGHTS 指纹变化", fp0 != fp1, True)
-    ev.WEIGHTS["exec"] = 0.5
+    _orig = ev.FORMULA
+    ev.FORMULA = "f99"
+    check("改 FORMULA 指纹变化", fp0 != ev.w_fingerprint(), True)
+    ev.FORMULA = _orig
 
     print("verify.FONTSIZE_RE —— 三种写法都要认")
     for text, want in [
