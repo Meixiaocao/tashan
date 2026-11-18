@@ -14,7 +14,7 @@
 ## 字段
 
 ```json
-{"date":"YYYY-MM-DD","object":"代号","kind":"app|code|os|skill",
+{"date":"YYYY-MM-DD","object":"代号","what":"一句话说清它是什么",
  "d1":0,"d2_valid":0,"converged":0,"fp":0,"partial":0,"note":"..."}
 ```
 

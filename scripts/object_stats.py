@@ -17,10 +17,10 @@ def main():
         print("台账为空")
         return 0
 
-    print("%-12s %-10s %5s %5s %5s %5s" % ("对象", "类", "D1", "有效", "收敛", "误报"))
+    print("%-12s %5s %5s %5s %5s" % ("对象", "D1", "有效", "收敛", "误报"))
     for r in rows:
-        print("%-12s %-10s %5d %5d %5d %5d" % (
-            r["object"], r["kind"], r["d1"], r["d2_valid"], r["converged"],
+        print("%-12s %5d %5d %5d %5d" % (
+            r["object"], r["d1"], r["d2_valid"], r["converged"],
             r["fp"] + r.get("partial", 0)))
 
     d1 = sum(r["d1"] for r in rows)

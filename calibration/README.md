@@ -18,14 +18,14 @@ calibration/<对象名>-<YYYYMMDD>.jsonl
 ## 一条样本
 
 ```json
-{"id":"FP-G6-07","object":"前端原型","dimension":"G6","claim":"4个输入无标签","verdict":"false_positive","why":"动态 input 在 label.field 内，浏览器可得到可访问名称","lesson":"标签检查看 DOM 包裹与可访问名称，不只看 aria-label 计数","assert_type":"可达性"}
+{"id":"FP-LBL-07","object":"前端原型","group":"标签与可访问名称","claim":"4个输入无标签","verdict":"false_positive","why":"动态 input 在 label.field 内，浏览器可得到可访问名称","lesson":"标签检查看 DOM 包裹与可访问名称，不只看 aria-label 计数","assert_type":"可达性"}
 ```
 
 | 字段 | 必填 | 说明 |
 |---|---|---|
-| `id` | 是 | `<verdict 缩写>-<维度>-<序号>` |
+| `id` | 是 | `<verdict 缩写>-<组名缩写>-<序号>` |
 | `object` | 是 | 被审对象，与文件名一致 |
-| `dimension` | 是 | G0–G7 / A / B / C / D |
+| `group` | 是 | 当时报告里的组名。v22 前的历史样本沿用旧维度代号（G6/P3/P4/P5），不改写 |
 | `claim` | 是 | 当时的断言原文 |
 | `verdict` | 是 | 见下表 |
 | `why` | 是 | 为什么判成这样，带文件位置 |
