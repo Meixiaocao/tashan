@@ -358,7 +358,7 @@ python scripts/evolve.py fitness                    # 看趋势与判定
 ├── scripts/          取证 / 复验 / 台账 / 自测 / 自进化（5 个）
 ├── calibration/      误报样本，按对象类分文件
 ├── objects/          外部评审台账：收敛率与精确率
-├── schedule/         定时取证
+├── calibration/      误报样本，按对象分文件
 └── versions/         账本 + 快照（快照不进 git）
 ```
 

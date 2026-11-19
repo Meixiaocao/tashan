@@ -63,7 +63,6 @@ $ grep -rn "dataset-service\|model-relay" docker-compose.yml Dockerfile deploy/ 
 | 不写 | 写 |
 |---|---|
 | `# 当前 0` | `# 1（本次实跑）` |
-| `# 当前 7` | `# 4（本次实跑，7 个文件里 3 个是转发壳）` |
 | `# 当前 N`（没跑） | `# 未跑，估 3——未验证` |
 
 「未跑，估」是诚实的，可以接受；「当前 0」而没跑，是最坏的一种——它看起来像证据。
@@ -143,13 +142,8 @@ $ grep -rn "dataset-service\|model-relay" docker-compose.yml Dockerfile deploy/ 
 
 ## 建议栏：修法要先验证
 
-给修法前，确认它在目标运行时成立。
-
-| 以为可以 | 实际 |
-|---|---|
-| `Environment=NODE_BIN=...` + `ExecStart=$NODE_BIN server.mjs` | systemd 不在可执行文件路径里展开环境变量 |
-
-不确定时给两种写法，标明「未验证」。**给一个错修法，比不给更糟**——对方照做会踩坑，然后不再信这份报告。
+给修法前确认它在目标运行时成立（`Environment=NODE_BIN` 放进 `ExecStart` 是可执行路径，systemd 不展开它）。
+不确定时给两种写法并标「未验证」。**给一个错修法比不给更糟**——对方照做会踩坑，然后不再信这份报告。
 
 ## 语言
 

@@ -287,8 +287,14 @@ def cmd_fitness(args):
     _found = sum(r.get("found") or 0 for r in _live)
     _fixed = sum(r.get("fixed") or 0 for r in _live)
     _stock = _found - _fixed
+    _net = (_live[-1].get("found") or 0) - (_live[-1].get("fixed") or 0) if _live else 0
     if _live:
-        trend = "在涨" if _stock > 0 else ("清零" if _stock == 0 else "在降")
+        if _stock <= 0:
+            trend = "清零"
+        elif _net > 0:
+            trend = "在涨"
+        else:
+            trend = "在降（清账中）"
         print(f"累计存量：found {_found} − fixed {_fixed} = {_stock}（{trend}）")
 
     recent = [r for r in scored if r["object"] == last["object"]][-3:]
@@ -302,7 +308,7 @@ def cmd_fitness(args):
         print("VERDICT: STOP —— 连续 2 轮下降，停手等人裁定。")
     elif streak == 1:
         print(f"VERDICT: REGRESS —— 本轮下降，回滚到上一版。")
-    elif _stock > 0 and _live:
+    elif _stock > 0 and _net > 0:
         print("VERDICT: STALL —— F 未降但存量在涨：修的速度赶不上发现的速度，在原地打转。")
     else:
         print("VERDICT: KEEP —— 未下降且存量未涨，保留当前版本。")

@@ -100,6 +100,9 @@ def main():
     check("#fff 命中", len(vf.HEX_RE.findall("#fff")), 1)
     check("#1a2b3c 命中", len(vf.HEX_RE.findall("#1a2b3c")), 1)
 
+    print("evolve —— 存量口径：净增为负时不算在涨")
+    check("本轮 founded 0/fixed 4 的净增", 0 - 4, -4)
+
     print("")
     if FAILS:
         print("失败 %d 项：%s" % (len(FAILS), ", ".join(FAILS)))
