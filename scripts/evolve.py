@@ -167,8 +167,12 @@ def with_scores(rows):
         if prev is None:
             out.append({**row, "fitness": None, "baseline": True, "parts": {}})
             continue
+        if row.get("fitness") is not None:
+            # 账本存档优先：公式升级后不回头改写历史判定。
+            out.append({**row, "baseline": False, "parts": row.get("parts") or {}})
+            continue
         f, parts = score(row, prev)
-        out.append({**row, "fitness": f, "baseline": False, "parts": parts})
+        out.append({**row, "fitness": f, "baseline": False, "parts": parts, "recomputed": True})
     return out
 
 
@@ -211,6 +215,15 @@ def cmd_record(args):
         "fp": args.fp,
         "partial": args.partial,
     }
+    prev = None
+    for _r in reversed(rows):
+        if _r.get("object") == args.object:
+            prev = _r
+            break
+    if prev:
+        rec["fitness"], rec["parts"] = score(rec, prev)
+    else:
+        rec["fitness"], rec["parts"] = None, {}
     total = rec["new"] + rec["carried"] + rec["recur"]
     if total != rec["found"]:
         print(f"警告：new+carried+recur={total} 与 found={rec['found']} 不一致", file=sys.stderr)
@@ -238,6 +251,8 @@ def cmd_fitness(args):
             f = "baseline"
         else:
             f = f"{r['fitness']}" + ("" if r["parts"].get("measured_fp") else "*")
+            if r.get("recomputed"):
+                f += "~"
         print(f"{seq:>3} {r['version']:<5} {r['object'][:14]:<14} {r.get('formula', '?'):<3} {r['found']:>3} "
               f"{r['new']:>2} {r['carried']:>2} {r['recur']:>2} {r['fixed']:>2} "
               f"{r.get('lines', 0):>4}{'!' if (r.get('lines', 0) / COST_BUDGET - 1) > 0 else ' '} {f:>9}")
