@@ -109,6 +109,23 @@ def main():
     print("evolve —— 存量口径：净增为负时不算在涨")
     check("本轮 founded 0/fixed 4 的净增", 0 - 4, -4)
 
+    print("report_check —— 能抓出「动作无状态」与「推测反推结论」")
+    rc = load("report_check")
+    import tempfile
+    bad = chr(10).join([
+        "## 5 动作",
+        "| 1 | 加一行 dataset-service/ | grep 从 1 变 2 |",
+        "",
+        "## 合起来像什么（推测，未验证）",
+        "所以差距仍然成立。",
+    ])
+    fd, tp = tempfile.mkstemp(suffix=".md", text=True)
+    with os.fdopen(fd, "w", encoding="utf-8") as fp:
+        fp.write(bad)
+    w, _ = rc.check(tp)
+    os.unlink(tp)
+    check("抓到动作无状态类警告", any("动作" in x for x in w), True)
+
     print("")
     if FAILS:
         print("失败 %d 项：%s" % (len(FAILS), ", ".join(FAILS)))
