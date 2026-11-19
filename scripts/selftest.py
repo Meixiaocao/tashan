@@ -5,6 +5,7 @@
 退出码 0 = 全过。
 """
 import importlib.util
+import re
 import os
 import sys
 
@@ -108,6 +109,17 @@ def main():
 
     print("evolve —— 存量口径：净增为负时不算在涨")
     check("本轮 founded 0/fixed 4 的净增", 0 - 4, -4)
+
+    print("文档数字 —— SKILL 声明的必读行数必须等于实际")
+    root = os.path.dirname(HERE)
+    skill_p = os.path.join(root, "SKILL.md")
+    skill_txt = open(skill_p, encoding="utf-8").read()
+    m = re.search(r"每轮必读 (\d+) 行", skill_txt)
+    claim = int(m.group(1)) if m else -1
+    files = ["SKILL.md", "refs/perceive.md", "refs/judge.md"]
+    actual = sum(len(open(os.path.join(root, f), encoding="utf-8").read().splitlines())
+                 for f in files)
+    check("声明的必读行数 = 实际", claim, actual)
 
     print("report_check —— 能抓出「动作无状态」与「推测反推结论」")
     rc = load("report_check")

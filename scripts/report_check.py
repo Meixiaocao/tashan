@@ -26,9 +26,10 @@ def check(path):
                 guessy.append(s)
             if "未跑" in s:
                 oks.append("已诚实标注「未跑」")
-    if any("#" in b and "│" not in b and "$" not in b and "实跑" not in b
-           for b in blocks for _ in [1]) and guessy:
-        warns.append("验后值块出现「当前 N」但没贴命令与输出——基线可能是推的")
+    if guessy:
+        has_cmd = any("$" in b or "实跑" in b for b in blocks)
+        if not has_cmd:
+            warns.append("验后值块出现「当前 N」但整份报告没有命令输出——基线可能是推的")
 
     # 2 绝对句有没有范围声明
     hit = [w for w in ABS_WORDS if w in text]
