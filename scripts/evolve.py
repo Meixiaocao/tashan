@@ -111,7 +111,11 @@ def score(rec, prev):
     载荷与新增条数不进公式——都是过程量，折算成分数会奖励「少报」、惩罚「查得深」。
     """
     prev_found = prev["found"] if prev else 0
-    fixed_rate = min(1.0, (rec.get("fixed") or 0) / prev_found) if prev_found else 0.0
+    # 上一轮没有可修项（found=0，如清账轮）时，修复率不适用——不能因此判 0。
+    if prev_found:
+        fixed_rate = min(1.0, (rec.get("fixed") or 0) / prev_found)
+    else:
+        fixed_rate = 1.0
     recur_rate = (rec["recur"] / rec["found"]) if rec.get("found") else 0.0
     new_rate = min(1.5, rec["new"] / prev_found) if prev_found else 0.0
     cost = max(0.0, rec.get("lines", 0) / COST_BUDGET - 1)

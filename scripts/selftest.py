@@ -65,6 +65,12 @@ def main():
                     {"found": 2})
     check("修 4 条、上轮 only 2 → F=1.0 不是 2.0", f, 1.0)
 
+    print("evolve.score —— 上轮无可修项时，修复率不适用（不判 0）")
+    f, parts = ev.score({"fixed": 1, "verified": 1, "recur": 0, "found": 1, "new": 1, "lines": 600},
+                        {"found": 0})
+    check("prev_found=0 → 不因修复率归零", f, 1.0)
+    check("fixed_rate 视作 1.0", parts["fixed_rate"], 1.0)
+
     print("evolve.score —— 判准度是乘数，判错一半就砍半")
     ev.external_accuracy = lambda: 0.5
     f, parts = ev.score({"fixed": 3, "verified": 3, "recur": 0, "found": 3, "new": 0, "lines": 600},
